@@ -1,0 +1,11 @@
+---
+- name: Bootstrap VPS
+  hosts: nodes
+  become: true
+
+  roles:
+    - users
+    - apt_update
+    - devsec.hardening.ssh_hardening
+    - swapfile
+    - downloads

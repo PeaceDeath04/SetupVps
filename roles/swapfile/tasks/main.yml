@@ -1,0 +1,85 @@
+---
+- name: Check if swapfile exists
+  ansible.builtin.stat:
+    path: "{{ swapfile_path }}"
+  register: swapfile_stat
+
+- name: Check current swap status
+  ansible.builtin.command:
+    cmd: swapon --show=NAME
+  register: swap_status
+  changed_when: false
+
+- name: Check swapfile size
+  ansible.builtin.stat:
+    path: "{{ swapfile_path }}"
+  register: swapfile_info
+  when: swapfile_stat.stat.exists
+
+- name: Calculate expected swapfile size
+  ansible.builtin.set_fact:
+    expected_swapfile_size: "{{ swapfile_size_mb | int * 1024 * 1024 }}"
+
+- name: Determine whether swapfile needs to be recreated
+  ansible.builtin.set_fact:
+    swapfile_needs_recreation: >-
+      {{
+        not swapfile_stat.stat.exists
+        or
+        (
+          swapfile_stat.stat.exists
+          and swapfile_info.stat.size | int != expected_swapfile_size | int
+        )
+      }}
+
+- name: Disable existing swapfile before recreation
+  ansible.builtin.command:
+    cmd: "swapoff {{ swapfile_path }}"
+  when:
+    - swapfile_needs_recreation
+    - swapfile_stat.stat.exists
+    - swapfile_path in swap_status.stdout_lines
+
+- name: Remove incorrect swapfile
+  ansible.builtin.file:
+    path: "{{ swapfile_path }}"
+    state: absent
+  when: swapfile_needs_recreation
+
+- name: Create swapfile
+  ansible.builtin.command:
+    cmd: "fallocate -l {{ swapfile_size_mb }}M {{ swapfile_path }}"
+  when: swapfile_needs_recreation
+
+- name: Set swapfile permissions
+  ansible.builtin.file:
+    path: "{{ swapfile_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Format swapfile
+  ansible.builtin.command:
+    cmd: "mkswap {{ swapfile_path }}"
+  when: swapfile_needs_recreation
+
+- name: Check whether swapfile is enabled
+  ansible.builtin.command:
+    cmd: "swapon --show=NAME"
+  register: swap_status_after
+  changed_when: false
+
+- name: Enable swapfile
+  ansible.builtin.command:
+    cmd: "swapon {{ swapfile_path }}"
+  when: swapfile_path not in swap_status_after.stdout_lines
+
+- name: Add swapfile to fstab
+  ansible.builtin.mount:
+    path: none
+    src: "{{ swapfile_path }}"
+    fstype: swap
+    opts: sw
+    dump: "0"
+    passno: "0"
+    state: present

@@ -1,0 +1,13 @@
+---
+- name: Download required files
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ downloads }}"
+
+- name: Create rr alias
+  ansible.builtin.lineinfile:
+    path: /etc/bash.bashrc
+    line: "alias rr='sudo /usr/local/bin/install_remnawave.sh'"
+    state: present

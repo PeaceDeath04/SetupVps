@@ -1,0 +1,9 @@
+---
+users:
+  - name: имя_пользователя
+    ssh_key: "путь/к/ключу.pub"
+    sudo_nopasswd: true
+
+  - name: имя_пользователя2
+    ssh_key: "путь/к/ключу2.pub"
+    sudo_nopasswd: true

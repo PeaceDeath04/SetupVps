@@ -1,0 +1,6 @@
+---
+downloads:
+  - name: Remnawave reverse proxy installer
+    url: "https://raw.githubusercontent.com/eGamesAPI/remnawave-reverse-proxy/refs/heads/main/install_remnawave.sh"
+    dest: "/usr/local/bin/install_remnawave.sh"
+    mode: "0755"
